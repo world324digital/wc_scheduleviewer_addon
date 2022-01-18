@@ -38,6 +38,8 @@ class WC_ScheduleViewer_Addon {
     public static $dropoff_date_time = "";
     public static $trip_type = 0;
     public static $space_type = "";
+    public static $message = "";
+    public static $status = false;
 
     public static function init() {
         add_filter( 'woocommerce_settings_tabs_array', __CLASS__ . '::add_settings_tab', 50 );
@@ -302,6 +304,8 @@ class WC_ScheduleViewer_Addon {
         self::getAccessValues();
         // self::getSingleTrip($order_id);
         self::postSingleTrip($order_id);
+        if (!self::$status)
+            throw new Exception(self::$message);
         // self::getTripCostBreakdown();
         // self::getFundingSource();
         // self::setFundingSource();
@@ -553,6 +557,7 @@ class WC_ScheduleViewer_Addon {
 
         if (isset($json)) {
             self::$trip_data = $json;
+            self::$status = true;
         }
     }
 
@@ -709,7 +714,8 @@ class WC_ScheduleViewer_Addon {
 
         if ($status_code == 401 || $status_code == 403 || $status_code == 500) {
             $json = json_decode($response);
-            throw new Exception($json->Message);
+            self::$message = $json->Message;
+            // throw new Exception($json->Message);
         }
 
         if ($status_code == 200) {
