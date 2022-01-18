@@ -380,7 +380,7 @@ class WC_ScheduleViewer_Addon {
     }
 
     public static function getRiderById($rider_id){
-        $url = self::$baseurl.'/api/v'.self::$version.'/riders/getByRiderIds?api_key='.self::$api_key.'&rider_id='.$rider_id;
+        $url = self::$baseurl.'/api/v'.self::$version.'/riders/getByRiderId?api_key='.self::$api_key.'&rider_id='.$rider_id;
         $auth = self::$token_type.' '.self::$access_token;
 
         $json = self::curlRequest($url, 'GET', $auth, null);
@@ -392,22 +392,30 @@ class WC_ScheduleViewer_Addon {
         }
     }
 
-    public static function createRider($user_id){
+    public static function createRider($user_id, $order_id){
         $url = self::$baseurl.'/api/v'.self::$version.'/riders';
         $auth = self::$token_type.' '.self::$access_token;
 
         $user_info = get_userdata($user_id);
 
-        var_dump($user_info);
-        die;
+        $order = wc_get_order( $order_id );
+        $order_data = $order->get_data();
+
+        $address_1 = $order_data['billing']['address_1'];
+        $address_2 = $order_data['billing']['address_2'];
+        $city = $order_data['billing']['city'];
+        $state = $order_data['billing']['state'];
+        $postcode = $order_data['billing']['postcode'];
+        $country = $order_data['billing']['country'];
+        $phone = $order_data['billing']['phone'];
 
         $address = array(
-            "location_name" => "string",
-            "address1" => "string",
-            "address2" => "string",
-            "city" => "string",
-            "state" => "string",
-            "zip" => "string",
+            "location_name" => "",
+            "address1" => $address_1,
+            "address2" => $address_2,
+            "city" => $city,
+            "state" => $state,
+            "zip" => $postcode,
             "longitude" => 0,
             "latitude" => 0
         );
@@ -419,19 +427,25 @@ class WC_ScheduleViewer_Addon {
             "last_name" => $user_info->last_name,
             "middle_name" => "",
             "address" => $address,
-            "phone" => "string",
-            "funding_source_name" => "string",
-            "space_type" => "string",
-            "home_phone" => "string",
-            "mobile_phone" => "string",
-            "icd_10_codes" => "string",
-            "date_of_birth" => "string",
+            "phone" => $phone,
+            "funding_source_name" => self::$funding_source_name,
+            "space_type" => self::$space_type,
+            "home_phone" => "",
+            "mobile_phone" => "",
+            "icd_10_codes" => "",
+            "date_of_birth" => "",
             "is_male" => true,
             "is_Female" => true,
-            "comments" => "string",
-            "private_comments" => "string",
+            "comments" => "comments",
+            "private_comments" => "",
             "email" => $user_info->user_email
         );
+
+
+
+        var_dump($rider);
+        die;
+
         $post_data = json_encode($rider);
 
         $json = self::curlRequest($url, 'POST', $auth, $post_data);
@@ -510,7 +524,7 @@ class WC_ScheduleViewer_Addon {
         if ($rider != null) {
             $rider_id = $rider->rider_id;
         } else {
-            $rider = self::createRider($user_id);
+            $rider = self::createRider($user_id, $order_id);
             $rider_id = $rider->rider_id;
         }
 
