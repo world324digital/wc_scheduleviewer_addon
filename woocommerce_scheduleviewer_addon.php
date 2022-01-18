@@ -35,6 +35,7 @@ class WC_ScheduleViewer_Addon {
 
     public static $pickup_complete_address = "";
     public static $dropoff_complete_address = "";
+    public static $dropoff_date_time = "";
     public static $trip_type = 0;
     public static $space_type = "";
 
@@ -126,7 +127,7 @@ class WC_ScheduleViewer_Addon {
         $plugin_url = plugin_dir_url( __FILE__ );
 
         wp_enqueue_style( 'checkout_style', $plugin_url . 'css/style.css' );
-        wp_enqueue_script( 'checkout_script', $plugins_url . 'js/custom.js' );
+        wp_enqueue_script( 'checkout_script', $plugin_url . 'js/custom.js' );
     }
 
 
@@ -139,7 +140,7 @@ class WC_ScheduleViewer_Addon {
             'label'        => __( 'Pickup address', 'woocommerce' ), 
             'type'         => 'text', 
             'required'     => 0,
-            'class'        => array(["form-row_wide", "address-field"]),
+            'class'        => array("form-row_wide", "address-field"),
             'autocomplete' => "pickup_complete_address"
         ), $checkout->get_value( 'pickup_complete_address' ) );
 
@@ -149,19 +150,19 @@ class WC_ScheduleViewer_Addon {
             'label'        => __( 'Dropoff address', 'woocommerce' ), 
             'type'         => 'text', 
             'required'     => 0,
-            'class'        => array(["form-row_wide", "address-field"]),
+            'class'        => array("form-row_wide", "address-field"),
             'autocomplete' => "dropoff_complete_address"
         ), $checkout->get_value( 'dropoff_complete_address' ) );
 
-        // Dropoff date field
-        woocommerce_form_field( 'dropoff_date', array(
-            'placeholder'  => 'Dropoff date',
-            'label'        => __( 'Dropoff date', 'woocommerce' ), 
-            'type'         => 'text', 
+        // Dropoff date time field
+        woocommerce_form_field( 'dropoff_date_time', array(
+            'placeholder'  => 'Dropoff date time',
+            'label'        => __( 'Dropoff date time', 'woocommerce' ), 
+            'type'         => 'datetime-local', 
             'required'     => 0,
-            'class'        => array(["form-row_wide", "address-field"]),
-            'autocomplete' => "dropoff_date"
-        ), $checkout->get_value( 'dropoff_date' ) );
+            'class'        => array("form-row_wide"),
+            'autocomplete' => "dropoff_date_time"
+        ), $checkout->get_value( 'dropoff_date_time' ) );
 
         // Trip Type Field
         woocommerce_form_field( 'trip_type', array(
@@ -216,6 +217,10 @@ class WC_ScheduleViewer_Addon {
         if (!empty($_POST['dropoff_complete_address'])) {
             self::$dropoff_complete_address = $_POST['dropoff_complete_address'];
             update_post_meta($order_id, 'Dropoff complete address', sanitize_text_field($_POST['dropoff_complete_address']));
+        }
+        if (!empty($_POST['dropoff_date_time'])) {
+            self::$dropoff_date_time = $_POST['dropoff_date_time'];
+            update_post_meta($order_id, 'Dropoff date time', sanitize_text_field($_POST['dropoff_date_time']));
         }
         if (!empty($_POST['trip_type'])) {
             self::$trip_type = intval($_POST['trip_type']);
@@ -374,6 +379,70 @@ class WC_ScheduleViewer_Addon {
         }
     }
 
+    public static function getRiderById($rider_id){
+        $url = self::$baseurl.'/api/v'.self::$version.'/riders/getByRiderIds?api_key='.self::$api_key.'&rider_id='.$rider_id;
+        $auth = self::$token_type.' '.self::$access_token;
+
+        $json = self::curlRequest($url, 'GET', $auth, null);
+
+        if (isset($json)) {
+            return $json;
+        } else {
+            return null;
+        }
+    }
+
+    public static function createRider($user_id){
+        $url = self::$baseurl.'/api/v'.self::$version.'/riders';
+        $auth = self::$token_type.' '.self::$access_token;
+
+        $user_info = get_userdata($user_id);
+
+        var_dump($user_info);
+        die;
+
+        $address = array(
+            "location_name" => "string",
+            "address1" => "string",
+            "address2" => "string",
+            "city" => "string",
+            "state" => "string",
+            "zip" => "string",
+            "longitude" => 0,
+            "latitude" => 0
+        );
+
+        $rider = array(
+            "tp_api_key" => self::$api_key,
+            "rider_id" => "user".$user_id,
+            "first_name" => $user_info->first_name,
+            "last_name" => $user_info->last_name,
+            "middle_name" => "",
+            "address" => $address,
+            "phone" => "string",
+            "funding_source_name" => "string",
+            "space_type" => "string",
+            "home_phone" => "string",
+            "mobile_phone" => "string",
+            "icd_10_codes" => "string",
+            "date_of_birth" => "string",
+            "is_male" => true,
+            "is_Female" => true,
+            "comments" => "string",
+            "private_comments" => "string",
+            "email" => $user_info->user_email
+        );
+        $post_data = json_encode($rider);
+
+        $json = self::curlRequest($url, 'POST', $auth, $post_data);
+
+        if (isset($json)) {
+            return $json;
+        } else {
+            return null;
+        }
+    }
+
     public static function postSingleTrip($order_id){
         $url = self::$baseurl.'/api/v'.self::$version.'/singletrip';
         $auth = self::$token_type.' '.self::$access_token;
@@ -414,7 +483,7 @@ class WC_ScheduleViewer_Addon {
             ),
             "appt_time" => "2022-01-14T19:44:12.446Z",
             "pickup_time" => $date_created,
-            "phone_number" => "string"
+            "phone_number" => ""
         );
 
         $dropoff = array(
@@ -432,14 +501,23 @@ class WC_ScheduleViewer_Addon {
                 "latitude" => 0
             ),
             "appt_time" => "2022-01-14T19:44:12.446Z",
-            "pickup_time" => $date_created,
+            "pickup_time" => self::$dropoff_date_time,
             "phone_number" => ""
         );
 
+        $rider = self::getRiderById("user".$user_id);
+
+        if ($rider != null) {
+            $rider_id = $rider->rider_id;
+        } else {
+            $rider = self::createRider($user_id);
+            $rider_id = $rider->rider_id;
+        }
+
         $trip_model = array(
             "tp_api_key" => self::$api_key,
-            "trip_id" => "TR #".$order_id,
-            "rider_id" => "user #".$user_id,
+            "trip_id" => "TR".$order_id,
+            "rider_id" => $rider_id,
             "pickup" => $pickup,
             "dropoff" => $dropoff,
             "funding_source_name" => self::$funding_source_name,
