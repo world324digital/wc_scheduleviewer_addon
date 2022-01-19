@@ -459,7 +459,7 @@ class WC_ScheduleViewer_Addon {
     }
 
     public static function postSingleTrip($order_id){
-        $url = self::$baseurl.'/api/v'.self::$version.'/singletrip/withRider';
+        $url = self::$baseurl.'/api/v'.self::$version.'/singletrip';
         $auth = self::$token_type.' '.self::$access_token;
 
         $order = wc_get_order( $order_id );
@@ -487,8 +487,8 @@ class WC_ScheduleViewer_Addon {
             "event_comment" => "",
             "complete_address" => self::$pickup_complete_address,
             "event_location" => array(
-                "location_name" => "",
-                "address1" => "",
+                "location_name" => self::$pickup_complete_address,
+                "address1" => self::$pickup_complete_address,
                 "address2" => "",
                 "city" => "",
                 "state" => "",
@@ -506,8 +506,8 @@ class WC_ScheduleViewer_Addon {
             "event_comment" => "",
             "complete_address" => self::$dropoff_complete_address,
             "event_location" => array(
-                "location_name" => "",
-                "address1" => "",
+                "location_name" => self::$dropoff_complete_address,
+                "address1" => self::$dropoff_complete_address,
                 "address2" => "",
                 "city" => "",
                 "state" => "",
@@ -532,8 +532,7 @@ class WC_ScheduleViewer_Addon {
         $trip_model = array(
             "tp_api_key" => self::$api_key,
             "trip_id" => "TR".$order_id,
-            // "rider_id" => $rider_id,
-            "rider" => $rider,
+            "rider_id" => $rider_id,
             "pickup" => $pickup,
             "dropoff" => $dropoff,
             "funding_source_id" => self::$funding_source_id,
