@@ -304,6 +304,8 @@ class WC_ScheduleViewer_Addon {
         self::getAccessValues();
         // self::getSingleTrip($order_id);
         self::postSingleTrip($order_id);
+        // var_dump(self::$message);
+        // die;
         if (!self::$status)
             throw new Exception(self::$message);
         // self::getTripCostBreakdown();
@@ -445,11 +447,6 @@ class WC_ScheduleViewer_Addon {
             "email" => $user_info->user_email
         );
 
-
-
-        var_dump($rider);
-        die;
-
         $post_data = json_encode($rider);
 
         $json = self::curlRequest($url, 'POST', $auth, $post_data);
@@ -462,7 +459,7 @@ class WC_ScheduleViewer_Addon {
     }
 
     public static function postSingleTrip($order_id){
-        $url = self::$baseurl.'/api/v'.self::$version.'/singletrip';
+        $url = self::$baseurl.'/api/v'.self::$version.'/singletrip/withRider';
         $auth = self::$token_type.' '.self::$access_token;
 
         $order = wc_get_order( $order_id );
@@ -535,9 +532,11 @@ class WC_ScheduleViewer_Addon {
         $trip_model = array(
             "tp_api_key" => self::$api_key,
             "trip_id" => "TR".$order_id,
-            "rider_id" => $rider_id,
+            // "rider_id" => $rider_id,
+            "rider" => $rider,
             "pickup" => $pickup,
             "dropoff" => $dropoff,
+            "funding_source_id" => self::$funding_source_id,
             "funding_source_name" => self::$funding_source_name,
             "space_type" => self::$space_type,
             "billable_distance" => 0,
@@ -700,19 +699,19 @@ class WC_ScheduleViewer_Addon {
 
         $response = curl_exec($curl);
 
+        $status_code = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+        curl_close($curl);
+
         $log_data = array(
             "url" => $url,
             'post_data' => $post_data,
+            'status_code' => $status_code,
             "response" => $response
         );
 
         self::saveLog($log_data);
 
-
-        $status_code = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-        curl_close($curl);
-
-        if ($status_code == 401 || $status_code == 403 || $status_code == 500) {
+        if ($status_code == 401 || $status_code == 403 || $status_code == 500 || $status_code == 400) {
             $json = json_decode($response);
             self::$message = $json->Message;
             // throw new Exception($json->Message);
