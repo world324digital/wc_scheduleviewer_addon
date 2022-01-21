@@ -449,7 +449,7 @@ class WC_ScheduleViewer_Addon {
 
         $post_data = json_encode($rider);
 
-        $json = self::curlRequest($url, 'POST', $auth, $post_data);
+        $json = self::curlRequest($url, 'POST', $auth, $post_data, 'application/json');
 
         if (isset($json)) {
             return $json;
@@ -525,8 +525,13 @@ class WC_ScheduleViewer_Addon {
         if ($rider != null) {
             $rider_id = $rider->rider_id;
         } else {
-            $rider = self::createRider($user_id, $order_id);
-            $rider_id = $rider->rider_id;
+            if ($user_id == 0) {
+                throw new Exception("You must sign up first before place order.");
+            } else {
+                $rider = self::createRider($user_id, $order_id);
+                $rider_id = $rider->rider_id;    
+            }
+            
         }
 
         $trip_model = array(
@@ -713,11 +718,13 @@ class WC_ScheduleViewer_Addon {
         if ($status_code == 401 || $status_code == 403 || $status_code == 500 || $status_code == 400) {
             $json = json_decode($response);
             self::$message = $json->Message;
+            // return null;
             // throw new Exception($json->Message);
         }
 
         if ($status_code == 200) {
             $json = json_decode($response);
+            self::$message = '';
             return $json;
         }
     }
